@@ -1,14 +1,11 @@
 pipeline {
     agent any
-    tools {
-        jdk 'Java11'
-    }
     stages {
         stage('Build') {
             steps {
                 echo 'Running build automation'
                 sh 'chmod +x gradlew'
-                sh './gradlew build -Dorg.gradle.jvmargs="-Xmx128m -XX:MaxMetaspaceSize=64m" --no-daemon'
+                sh './gradlew build --no-daemon'
                 archiveArtifacts artifacts: 'dist/reactApp'
             }
         }
