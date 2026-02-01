@@ -10,6 +10,18 @@ pipeline {
                 archiveArtifacts artifacts: 'dist/reactApp'
             }
         }
+        stage('Build') {
+            steps {
+                echo 'Running build automation'
+                sh 'chmod +x gradlew'
+                // We set JAVA_HOME to Java 11 for this specific command
+                sh '''
+                export JAVA_HOME=/usr/lib/jvm/java-11-openjdk
+                ./gradlew build -Dorg.gradle.jvmargs="-Xmx128m -XX:MaxMetaspaceSize=64m" --no-daemon
+                '''
+                archiveArtifacts artifacts: 'dist/reactApp'
+            }
+        }
         stage('Build Docker Image') {
             when {
                 branch 'main'
