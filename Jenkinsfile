@@ -6,6 +6,7 @@ pipeline {
                 echo 'Running build automation'
                 sh 'chmod +x gradlew'
                 sh './gradlew build --no-daemon'
+                sh 'export GRADLE_OPTS="-Xmx128m -XX:MaxMetaspaceSize=64m" && ./gradlew build --no-daemon'
                 archiveArtifacts artifacts: 'dist/reactApp'
             }
         }
