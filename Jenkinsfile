@@ -31,9 +31,17 @@ pipeline {
         stage('Push to Docker Hub') {
             steps {
                 script {
-                    // This uses the Global Credential 'dockerhub_login' you just created
-                    docker.withRegistry('https://index.docker.io/v1/', 'dockerhub_login') {
-                        sh 'docker push sandman-34/react-app:latest'
+                    // Using the standard credentials binding method
+                    withCredentials([usernamePassword(credentialsId: 'dockerhub_login', passwordVariable: 'DOCKER_PASS', usernameVariable: 'DOCKER_USER')]) {
+                     
+                    // Login using the variables provided by Jenkins
+                    sh "echo \$DOCKER_PASS | docker login -u \$DOCKER_USER --password-stdin"
+                
+                    // Push the image
+                    sh "docker push sandman-34/react-app:latest"
+                
+                    // Always logout for security
+                    sh "docker logout"
                     }
                 }
             }
