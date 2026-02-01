@@ -12,16 +12,18 @@ pipeline {
         stage('Docker Build and Test') {
             steps {
                 script {
-                    // 1. Build the image with the correct username
-                    sh 'docker build -t sandman34/react-app:latest .'
-
-                    // 2. Run the container for testing
-                    sh 'docker run -d -p 1233:80 --name my-test-app sandman34/react-app:latest'
+                    // This line is the 'insurance policy' to prevent port conflicts
+                    sh 'docker stop my-test-app || true && docker rm my-test-app || true'
             
+                    sh 'docker build -t sandman34/react-app:latest .'
+                    sh 'docker run -d -p 1233:80 --name my-test-app sandman34/react-app:latest'
                     sh 'sleep 5'
                     sh 'curl http://localhost:1233'
             
-                    sh 'docker stop my-test-app && docker rm my-test-app'
+                    // If you want to see the 'Blue Box' later, 
+                    // keep the stop/rm commands at the end so it stays clean!
+                    sh 'docker stop my-test-app'
+                    sh 'docker rm my-test-app'
                 }
             }
         }
