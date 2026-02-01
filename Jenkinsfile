@@ -1,15 +1,21 @@
 pipeline {
     agent any
+    
+    tools {
+        jdk 'Java11' // This must match the Name you gave in Step 1
+    }
+    
     stages {
         stage('Build') {
             steps {
                 echo 'Running build automation'
                 sh 'chmod +x gradlew'
-                // The -Dorg.gradle.jvmargs is the most important part for a t3.micro
+                // We keep the memory limits to protect your t3.micro
                 sh './gradlew build -Dorg.gradle.jvmargs="-Xmx128m -XX:MaxMetaspaceSize=64m" --no-daemon'
-                archiveArtifacts artifacts: 'dist/reactApp'
             }
         }
+        // ... rest of your stages (Build Docker Image, etc.)
+    }
         stage('Build Docker Image') {
             when {
                 branch 'main'
@@ -23,6 +29,7 @@ pipeline {
                 }
             }
         }
+        
         stage('Push Docker Image') {
             when {
                 branch 'main'
@@ -36,7 +43,8 @@ pipeline {
                 }
             }
         }
-         stage('DeployToStaging') {
+        
+        stage('DeployToStaging') {
             when {
                 branch 'main'
             }
