@@ -12,18 +12,15 @@ pipeline {
         stage('Docker Build and Test') {
             steps {
                 script {
-                    // 1. Build the image
-                    sh 'docker build -t sandman-34/react-app:latest .'
+                    // 1. Build the image with the correct username
+                    sh 'docker build -t sandman34/react-app:latest .'
 
-                    // 2. Run the container with port mapping (Host 1233 -> Container 80)
-                    // We use --entrypoint='' to ensure Jenkins can interact with it if needed
-                    sh 'docker run -d -p 1233:80 --name my-test-app sandman-34/react-app:latest'
-                    
-                    // 3. Wait for Nginx to wake up and test
+                    // 2. Run the container for testing
+                    sh 'docker run -d -p 1233:80 --name my-test-app sandman34/react-app:latest'
+            
                     sh 'sleep 5'
                     sh 'curl http://localhost:1233'
-                    
-                    // 4. Cleanup test container
+            
                     sh 'docker stop my-test-app && docker rm my-test-app'
                 }
             }
@@ -31,16 +28,13 @@ pipeline {
         stage('Push to Docker Hub') {
             steps {
                 script {
-                    // Using the standard credentials binding method
                     withCredentials([usernamePassword(credentialsId: 'dockerhub_login', passwordVariable: 'DOCKER_PASS', usernameVariable: 'DOCKER_USER')]) {
-                     
-                    // Login using the variables provided by Jenkins
+                    // This will now use sandman34
                     sh "echo \$DOCKER_PASS | docker login -u \$DOCKER_USER --password-stdin"
                 
-                    // Push the image
-                    sh "docker push sandman-34/react-app:latest"
+                    // Push the image we built in the previous stage
+                    sh "docker push sandman34/react-app:latest"
                 
-                    // Always logout for security
                     sh "docker logout"
                     }
                 }
