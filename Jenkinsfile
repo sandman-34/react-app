@@ -5,11 +5,7 @@ pipeline {
             steps {
                 echo 'Running build automation'
                 sh 'chmod +x gradlew'
-                // We set JAVA_HOME to Java 11 for this specific command
-                sh '''
-                export JAVA_HOME=/usr/lib/jvm/java-11-openjdk
-                ./gradlew build -Dorg.gradle.jvmargs="-Xmx128m -XX:MaxMetaspaceSize=64m" --no-daemon
-                '''
+                sh './gradlew build --no-daemon'
                 archiveArtifacts artifacts: 'dist/reactApp'
             }
         }
@@ -50,7 +46,7 @@ pipeline {
                             sh "docker stop react-app"
                             sh "docker rm react-app"
                         } catch (err) {
-                            echo "caught error: $err"
+                            echo: 'caught error: $err'
                         }
                         sh "docker run --restart always --name react-app -p 1233:80 -d sandman-34/react-app:${env.BUILD_NUMBER}"
                     }
@@ -89,7 +85,7 @@ pipeline {
                             sh "docker stop react-app"
                             sh "docker rm react-app"
                         } catch (err) {
-                            echo "caught error: $err"
+                            echo: 'caught error: $err'
                         }
                         sh "docker run --restart always --name react-app -p 1233:80 -d sandman-34/react-app:${env.BUILD_NUMBER}"
                     }
