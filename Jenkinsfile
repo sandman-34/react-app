@@ -29,71 +29,46 @@ pipeline {
             steps {
                 script {
                     withCredentials([usernamePassword(credentialsId: 'dockerhub_login', passwordVariable: 'DOCKER_PASS', usernameVariable: 'DOCKER_USER')]) {
-                    // This will now use sandman34
                     sh "echo \$DOCKER_PASS | docker login -u \$DOCKER_USER --password-stdin"
                 
-                    // Push the image we built in the previous stage
+                    // Tag it with BOTH latest and the build number
+                    sh "docker tag sandman34/react-app:latest sandman34/react-app:${env.BUILD_NUMBER}"
+                
                     sh "docker push sandman34/react-app:latest"
+                    sh "docker push sandman34/react-app:${env.BUILD_NUMBER}"
                 
                     sh "docker logout"
                     }
                 }
             }
         }
-         stage('DeployToStaging') {
-            when {
-                branch 'main'
-            }
-            steps {
-                    script {
-                        sh "docker pull sandman34/react-app:${env.BUILD_NUMBER}"
-                        try {
-                            sh "docker stop react-app"
-                            sh "docker rm react-app"
-                        } catch (err) {
-                            echo: 'caught error: $err'
-                        }
-                        sh "docker run --restart always --name react-app -p 1233:80 -d sandman34/react-app:${env.BUILD_NUMBER}"
-                    }
-            }
-        }
-        
-        stage("Check HTTP Response") {
+        stage('DeployToStaging') {
             steps {
                 script {
-                    final String url = "http://localhost:1233"
-                    
-                    final String response = sh(script: "curl -o /dev/null -s -w '%{http_code}\\n' $url", returnStdout: true).trim()
-                    
-                    if (response == "200") {
-                        echo response
-                        println "Successful Response Code" 
-                    } else {
-                        echo response
-                        println "Error Response Code" 
-                    }
-
+                    sh "docker stop staging-app || true && docker rm staging-app || true"
+                    // Pulling with build number to ensure we get the fresh image
+                    sh "docker pull sandman34/react-app:${env.BUILD_NUMBER}"
+                    sh "docker run -d -p 8081:80 --name staging-app sandman34/react-app:${env.BUILD_NUMBER}"
                 }
             }
         }
-        
-        stage('DeployToProduction') {
-            when {
-                branch 'main'
-            }
+        stage('Check HTTP Response') {
             steps {
-                input 'Does the staging environment look OK? Did You get 200 response?'
-                 milestone(1)
-                    script {
-                        sh "docker pull sandman34/react-app:${env.BUILD_NUMBER}"
-                        try {
-                            sh "docker stop react-app"
-                            sh "docker rm react-app"
-                        } catch (err) {
-                            echo: 'caught error: $err'
-                        }
-                        sh "docker run --restart always --name react-app -p 1233:80 -d sandman34/react-app:${env.BUILD_NUMBER}"
-                    }
+                script {
+                    echo "Checking Staging App on port 8081..."
+                    sh "sleep 10" 
+                    sh "curl http://localhost:8081"
+                }
+            }
+        }
+        stage('DeployToProduction') {
+            steps {
+                script {
+                    sh "docker stop production-app || true && docker rm production-app || true"
+                    // Deploying the 'latest' tag to port 80
+                    sh "docker run -d -p 80:80 --name production-app sandman34/react-app:latest"
+                    echo "Application is LIVE at port 80"
+                }
             }
         }
     }
