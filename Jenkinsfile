@@ -5,7 +5,8 @@ pipeline {
             steps {
                 echo 'Running build automation'
                 sh 'chmod +x gradlew'
-                sh './gradlew build --no-daemon'
+                // The -Dorg.gradle.jvmargs is the most important part for a t3.micro
+                sh './gradlew build -Dorg.gradle.jvmargs="-Xmx128m -XX:MaxMetaspaceSize=64m" --no-daemon'
                 archiveArtifacts artifacts: 'dist/reactApp'
             }
         }
