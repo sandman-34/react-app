@@ -1,35 +1,30 @@
 pipeline {
     agent any
-    
     tools {
-        jdk 'Java11' // This must match the Name you gave in Step 1
+        jdk 'Java11'
     }
-    
     stages {
         stage('Build') {
             steps {
                 echo 'Running build automation'
                 sh 'chmod +x gradlew'
-                // We keep the memory limits to protect your t3.micro
                 sh './gradlew build -Dorg.gradle.jvmargs="-Xmx128m -XX:MaxMetaspaceSize=64m" --no-daemon'
+                archiveArtifacts artifacts: 'dist/reactApp'
             }
         }
-        // ... rest of your stages (Build Docker Image, etc.)
-    }
         stage('Build Docker Image') {
             when {
                 branch 'main'
             }
             steps {
                 script {
-                    app = docker.build("sandman-34/react-app")
+                    app = docker.build("wessamabdelwahab/react-app")
                     app.inside {
                         sh 'echo $(curl localhost:1233)'
                     }
                 }
             }
         }
-        
         stage('Push Docker Image') {
             when {
                 branch 'main'
@@ -43,21 +38,20 @@ pipeline {
                 }
             }
         }
-        
-        stage('DeployToStaging') {
+         stage('DeployToStaging') {
             when {
                 branch 'main'
             }
             steps {
                     script {
-                        sh "docker pull sandman-34/react-app:${env.BUILD_NUMBER}"
+                        sh "docker pull wessamabdelwahab/react-app:${env.BUILD_NUMBER}"
                         try {
                             sh "docker stop react-app"
                             sh "docker rm react-app"
                         } catch (err) {
                             echo: 'caught error: $err'
                         }
-                        sh "docker run --restart always --name react-app -p 1233:80 -d sandman-34/react-app:${env.BUILD_NUMBER}"
+                        sh "docker run --restart always --name react-app -p 1233:80 -d wessamabdelwahab/react-app:${env.BUILD_NUMBER}"
                     }
             }
         }
@@ -89,15 +83,16 @@ pipeline {
                 input 'Does the staging environment look OK? Did You get 200 response?'
                  milestone(1)
                     script {
-                        sh "docker pull sandman-34/react-app:${env.BUILD_NUMBER}"
+                        sh "docker pull wessamabdelwahab/react-app:${env.BUILD_NUMBER}"
                         try {
                             sh "docker stop react-app"
                             sh "docker rm react-app"
                         } catch (err) {
                             echo: 'caught error: $err'
                         }
-                        sh "docker run --restart always --name react-app -p 1233:80 -d sandman-34/react-app:${env.BUILD_NUMBER}"
+                        sh "docker run --restart always --name react-app -p 1233:80 -d wessamabdelwahab/react-app:${env.BUILD_NUMBER}"
                     }
             }
         }
     }
+}
