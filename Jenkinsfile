@@ -9,28 +9,31 @@ pipeline {
                 archiveArtifacts artifacts: 'dist/reactApp'
             }
         }
-        stage('Build Docker Image') {
-            when {
-                branch 'main'
-            }
+        stage('Docker Build and Test') {
             steps {
                 script {
-                    app = docker.build("sandman-34/react-app")
-                    app.inside {
-                        sh 'echo $(curl localhost:1233)'
-                    }
+                    // 1. Build the image
+                    sh 'docker build -t sandman-34/react-app:latest .'
+
+                    // 2. Run the container with port mapping (Host 1233 -> Container 80)
+                    // We use --entrypoint='' to ensure Jenkins can interact with it if needed
+                    sh 'docker run -d -p 1233:80 --name my-test-app sandman-34/react-app:latest'
+                    
+                    // 3. Wait for Nginx to wake up and test
+                    sh 'sleep 5'
+                    sh 'curl http://localhost:1233'
+                    
+                    // 4. Cleanup test container
+                    sh 'docker stop my-test-app && docker rm my-test-app'
                 }
             }
         }
-        stage('Push Docker Image') {
-            when {
-                branch 'main'
-            }
+        stage('Push to Docker Hub') {
             steps {
                 script {
-                    docker.withRegistry('https://registry.hub.docker.com', 'dockerhub_login') {
-                        app.push("${env.BUILD_NUMBER}")
-                        app.push("latest")
+                    // This uses the Global Credential 'dockerhub_login' you just created
+                    docker.withRegistry('https://index.docker.io/v1/', 'dockerhub_login') {
+                        sh 'docker push sandman-34/react-app:latest'
                     }
                 }
             }
