@@ -5,11 +5,12 @@ pipeline {
             steps {
                 echo 'Running build automation'
                 sh 'chmod +x gradlew'
-                sh './gradlew build --no-daemon'
-                sh 'export GRADLE_OPTS="-Xmx128m -XX:MaxMetaspaceSize=64m" && ./gradlew build --no-daemon'
-                archiveArtifacts artifacts: 'dist/reactApp'
+                // Use GRADLE_OPTS to limit the JVM memory usage to 128MB
+                sh 'export GRADLE_OPTS="-Xmx128m -Xms128m -XX:MaxMetaspaceSize=64m" && ./gradlew build --no-daemon'
+                archiveArtifacts artifacts: 'dist/react-app'
             }
         }
+            }
         stage('Build Docker Image') {
             when {
                 branch 'main'
