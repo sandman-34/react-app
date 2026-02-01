@@ -62,12 +62,15 @@ pipeline {
             }
         }
         stage('DeployToProduction') {
+            // This is the magic part that creates the blue box
+            input {
+                message "Does the staging environment look OK? Did you get 200 response?"
+                ok "Proceed"
+            }
             steps {
                 script {
                     sh "docker stop production-app || true && docker rm production-app || true"
-                    // Deploying the 'latest' tag to port 80
                     sh "docker run -d -p 80:80 --name production-app sandman34/react-app:latest"
-                    echo "Application is LIVE at port 80"
                 }
             }
         }
