@@ -12,18 +12,23 @@ pipeline {
         stage('Docker Build and Test') {
             steps {
                 script {
-                    // THE PRO-TIP GOES HERE:
-                    // This kills whatever is using port 1233, regardless of its name
-                    sh 'docker stop $(docker ps -q --filter publish=1233) || true'
-                    sh 'docker rm -f $(docker ps -aq --filter publish=1233) || true'
-            
-                    // Now the port is guaranteed to be open for your test
+                    // Place the robust cleanup here:
+                    sh '''
+                    CONTAINER_ID=$(docker ps -aq --filter publish=1233)
+                    if [ ! -z "$CONTAINER_ID" ]; then
+                    docker stop $CONTAINER_ID || true
+                    docker rm -f $CONTAINER_ID || true
+                    fi
+                    docker rm -f my-test-app || true
+                    '''
+
+                    // Your existing build/run commands follow:
                     sh 'docker build -t sandman34/react-app:latest .'
                     sh 'docker run -d -p 1233:80 --name my-test-app sandman34/react-app:latest'
                     sh 'sleep 5'
                     sh 'curl http://localhost:1233'
             
-                    // Clean up my-test-app so the pipeline can move to the next stage
+                    // Cleanup after test (to keep the port free for the next build)
                     sh 'docker stop my-test-app && docker rm my-test-app'
                 }
             }
