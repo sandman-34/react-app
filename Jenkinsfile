@@ -12,18 +12,19 @@ pipeline {
         stage('Docker Build and Test') {
             steps {
                 script {
-                    // This line is the 'insurance policy' to prevent port conflicts
-                    sh 'docker stop my-test-app || true && docker rm my-test-app || true'
+                    // THE PRO-TIP GOES HERE:
+                    // This kills whatever is using port 1233, regardless of its name
+                    sh 'docker stop $(docker ps -q --filter publish=1233) || true'
+                    sh 'docker rm -f $(docker ps -aq --filter publish=1233) || true'
             
+                    // Now the port is guaranteed to be open for your test
                     sh 'docker build -t sandman34/react-app:latest .'
                     sh 'docker run -d -p 1233:80 --name my-test-app sandman34/react-app:latest'
                     sh 'sleep 5'
                     sh 'curl http://localhost:1233'
             
-                    // If you want to see the 'Blue Box' later, 
-                    // keep the stop/rm commands at the end so it stays clean!
-                    sh 'docker stop my-test-app'
-                    sh 'docker rm my-test-app'
+                    // Clean up my-test-app so the pipeline can move to the next stage
+                    sh 'docker stop my-test-app && docker rm my-test-app'
                 }
             }
         }
